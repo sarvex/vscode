@@ -177,6 +177,8 @@ class InteractiveEditorWidget {
 	private readonly _statusLink: StatusLink;
 	private readonly _statusLinkListener = this._store.add(new MutableDisposable());
 
+	private _isLastStatusUpdateMessage: boolean = false;
+
 	constructor(
 		parentEditor: ICodeEditor,
 		@IModelService private readonly _modelService: IModelService,
@@ -392,7 +394,7 @@ class InteractiveEditorWidget {
 		this._onDidChangeHeight.fire();
 	}
 
-	updateMessage(message: string | HTMLElement, ops: { linkListener?: () => void; isMessageReply?: boolean; classes?: string[]; resetAfter?: number } = {}) {
+	updateMessage(message: string | Element, ops: { linkListener?: () => void; isMessageReply?: boolean; classes?: string[]; resetAfter?: number } = {}) {
 		this._statusLinkListener.clear();
 		if (ops.isMessageReply) {
 			this._statusLink.show();
@@ -402,11 +404,11 @@ class InteractiveEditorWidget {
 		}
 		const isTempMessage = typeof ops.resetAfter === 'number';
 		if (isTempMessage && !this._elements.statusLabel.dataset['state']) {
-			const messageNow = this._elements.statusLabel.innerText;
+			const messageNow = this._isLastStatusUpdateMessage ? this._elements.statusLabel.firstElementChild : this._elements.statusLabel.innerText;
 			const classes = Array.from(this._elements.statusLabel.classList.values());
 			setTimeout(() => {
 				if (messageNow) {
-					this.updateMessage(messageNow, { ...ops, classes });
+					this.updateMessage(messageNow, { ...ops, classes, isMessageReply: this._isLastStatusUpdateMessage });
 				} else {
 					reset(this._elements.statusLabel);
 				}
@@ -423,6 +425,7 @@ class InteractiveEditorWidget {
 		} else {
 			delete this._elements.statusLabel.dataset['state'];
 		}
+		this._isLastStatusUpdateMessage = ops.isMessageReply ?? this._isLastStatusUpdateMessage;
 		this._onDidChangeHeight.fire();
 	}
 
